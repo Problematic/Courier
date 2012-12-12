@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Courier Test Suite</title>
+    <link rel="stylesheet" href="http://code.jquery.com/qunit/qunit-1.10.0.css" />
+</head>
+<body>
+    <div id="qunit"></div>
+    <script src="../src/Courier.js"></script>
+    <script src="http://code.jquery.com/qunit/qunit-1.10.0.js"></script>
+    <script>
+        (function (window, undefined) {
+            'use strict';
+
+            var Courier = window.Courier;
+
+            QUnit.testDone(function (details) {
+                Courier.remove('data');
+            });
+
+            test('Basic method tests', function () {
+                var data = 'foo';
+
+                Courier.set('data', data);
+                equal(Courier.get('data'), data, 'Courier#get returns the same value given to Courier#set');
+
+                Courier.remove('data');
+                equal(Courier.get('data'), null, 'Getting a removed item returns null');
+
+                equal(Courier.get('arbitrary'), null, 'Getting a key that hasn\'t been set returns null');
+            });
+
+            test('Built-in transformer tests', function () {
+                var data = {foo: 'bar', baz: 'troz'};
+
+                Courier.set('data', data, {transformer: Courier.transformers.object});
+                equal(Courier.get('data'), JSON.stringify(data), 'Data transformed by built-in object transformer matches JSON.stringify(data)');
+                deepEqual(Courier.get('data', {transformer: Courier.transformers.object}), data, 'Retrieving transformed object data with built-in object transformer returns object');
+
+                Courier.set('data', true);
+                equal(Courier.get('data'), 'true', 'Stored boolean data is returned as string without transformer');
+                equal(Courier.get('data', {transformer: Courier.transformers.boolean}), true, 'Built-in boolean transformer converts string "true" to boolean correctly');
+
+                Courier.set('data', false);
+                equal(Courier.get('data', {transformer: Courier.transformers.boolean}), false, 'Built-in boolean transformer converts string "false" to boolean correctly');
+
+                Courier.set('data', null);
+                equal(Courier.get('data', {transformer: Courier.transformers.boolean}), null, 'Built-in boolean transformer converts string "null" to null value correctly');
+            });
+
+            test('General transformer tests', function () {
+                var data = 'foo', expected;
+
+                Courier.set('data', data, {transformer: function (data) { throw new Error(); }});
+                equal(Courier.get('data'), data, 'Original data is set if transformer throws error');
+
+                data = 'bar';
+                expected = 'barbaz';
+
+                Courier.set('data', data, function (data) { return data + 'baz'; });
+                equal(Courier.get('data'), expected, 'Transformer can be set directly (instead of through options hash)');
+
+                data = 'foo';
+                expected = 'foobarbaz';
+                Courier.set('data', data, [function (data) { return data + 'bar'; }, function (data) { return data + 'baz'; }]);
+                equal(Courier.get('data'), expected, 'Transforms can be passed in an array and are run serially against data');
+            });
+        }(this));
+    </script>
+</body>
+</html>
